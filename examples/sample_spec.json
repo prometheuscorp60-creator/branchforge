@@ -1,0 +1,54 @@
+{
+  "plate": {
+    "kind": "rectangle",
+    "width_mm": 100,
+    "height_mm": 60
+  },
+  "ports": {
+    "inlet": {
+      "x_mm": 5,
+      "y_mm": 30
+    },
+    "outlet": {
+      "x_mm": 95,
+      "y_mm": 30
+    },
+    "inlet_diameter_mm": 6,
+    "outlet_diameter_mm": 6
+  },
+  "heatmap": {
+    "kind": "csv",
+    "total_watts": 1200,
+    "flip_y": true
+  },
+  "constraints": {
+    "plate_thickness_mm": 5,
+    "channel_depth_mm": 2,
+    "min_channel_width_mm": 1.2,
+    "max_channel_width_mm": 8,
+    "min_wall_mm": 1,
+    "min_bend_radius_mm": 3,
+    "grid_resolution_mm": 2,
+    "process_preset": "CNC",
+    "keepout_rects": [],
+    "keepout_circles": []
+  },
+  "fluid": {
+    "coolant": "water",
+    "inlet_temp_C": 25,
+    "target_deltaT_C": 10
+  },
+  "generation": {
+    "n_candidates": 10,
+    "leaf_counts": [
+      8,
+      12,
+      16
+    ],
+    "seed": 42,
+    "weight_pressure": 1,
+    "weight_uniformity": 1,
+    "weight_manufacturing": 0.5,
+    "v_max_m_per_s": 1.5
+  }
+}

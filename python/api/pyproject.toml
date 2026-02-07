@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling>=1.22.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "branchforge-api"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.9",
+  "pydantic>=2.6",
+  "sqlmodel>=0.0.22",
+  "redis>=5.0",
+  "rq>=1.16",
+  "python-dotenv>=1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["branchforge_api"]

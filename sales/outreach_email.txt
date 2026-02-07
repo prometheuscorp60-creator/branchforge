@@ -1,0 +1,20 @@
+Subject: Heatmap → STEP branching cold plate (2 free designs)
+
+Hi {{name}},
+
+I built a tool that turns a cold‑plate heat map into a manufacturable branching supply/return network and exports STEP/STL/DXF.
+
+It uses surface-optimized junction rules (Nature minimal-surface framework) so branches morph between:
+- orthogonal sprouts for thin branches
+- more symmetric branching when thickness increases
+
+If you send:
+- plate outline (DXF) or dimensions
+- a heat map (CSV or image)
+- inlet/outlet positions + channel constraints
+
+…I’ll generate **2 candidate plates free** and send you the STEP + a ΔP/uniformity report.
+
+Worth a quick 15 minutes this week?
+
+— {{you}}

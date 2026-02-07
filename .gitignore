@@ -1,0 +1,11 @@
+.env
+data/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+*.stl
+*.step
+*.dxf
+*.png
+*.pdf
