@@ -13,12 +13,43 @@ from .settings import settings
 
 logger = logging.getLogger("branchforge.api.db")
 
+
+def _resolve_db_url() -> str:
+    db_url = settings.db_url
+    if not db_url.startswith("sqlite"):
+        return db_url
+
+    # Ensure SQLite parent dir exists; fall back to /tmp if configured path is not writable.
+    sqlite_path = db_url.replace("sqlite:///", "", 1)
+    if sqlite_path and sqlite_path != ":memory:" and not sqlite_path.startswith("file:"):
+        db_file = Path(sqlite_path)
+        try:
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            fallback = Path("/tmp/branchforge.db")
+            fallback.parent.mkdir(parents=True, exist_ok=True)
+            fallback_url = f"sqlite:///{fallback.as_posix()}"
+            logger.warning(
+                "SQLite path not writable; falling back to /tmp/branchforge.db",
+                extra={
+                    "event": "db.sqlite.fallback_tmp",
+                    "configured_db_url": db_url,
+                    "fallback_db_url": fallback_url,
+                },
+            )
+            return fallback_url
+
+    return db_url
+
+
+EFFECTIVE_DB_URL = _resolve_db_url()
+
 _connect_args = {}
-if settings.db_url.startswith("sqlite"):
+if EFFECTIVE_DB_URL.startswith("sqlite"):
     _connect_args["check_same_thread"] = False
 
 engine = create_engine(
-    settings.db_url,
+    EFFECTIVE_DB_URL,
     connect_args=_connect_args,
     pool_pre_ping=True,
 )
@@ -31,7 +62,7 @@ def _run_alembic_migrations() -> None:
 
     alembic_cfg = Config(str(alembic_ini))
     alembic_cfg.set_main_option("script_location", str(alembic_script_dir))
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.db_url)
+    alembic_cfg.set_main_option("sqlalchemy.url", EFFECTIVE_DB_URL)
 
     command.upgrade(alembic_cfg, "head")
 
@@ -56,7 +87,7 @@ def init_db():
     Uses Alembic migrations for non-SQLite environments.
     Falls back to SQLModel create_all for SQLite/test environments.
     """
-    if settings.db_url.startswith("sqlite"):
+    if EFFECTIVE_DB_URL.startswith("sqlite"):
         SQLModel.metadata.create_all(engine)
         logger.info(
             "SQLite/test DB detected; using SQLModel.create_all fallback",
