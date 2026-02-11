@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir -e /app/branchforge_core
 COPY api /app/api
 RUN pip install --no-cache-dir -e /app/api
 
+# Copy Alembic migration config/scripts used at API startup
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
+
 ENV PYTHONUNBUFFERED=1
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
