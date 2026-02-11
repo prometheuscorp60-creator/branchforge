@@ -60,6 +60,20 @@ def _run_alembic_migrations() -> None:
     alembic_ini = python_dir / "alembic.ini"
     alembic_script_dir = python_dir / "alembic"
 
+    # In some container builds, migration files may not be present.
+    # Fall back to metadata create_all so API can still boot.
+    if not alembic_ini.exists() or not alembic_script_dir.exists():
+        logger.warning(
+            "Alembic files not found; falling back to SQLModel.create_all",
+            extra={
+                "event": "db.alembic.missing_fallback",
+                "alembic_ini": str(alembic_ini),
+                "alembic_script_dir": str(alembic_script_dir),
+            },
+        )
+        SQLModel.metadata.create_all(engine)
+        return
+
     alembic_cfg = Config(str(alembic_ini))
     alembic_cfg.set_main_option("script_location", str(alembic_script_dir))
     alembic_cfg.set_main_option("sqlalchemy.url", EFFECTIVE_DB_URL)

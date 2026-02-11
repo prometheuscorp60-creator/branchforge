@@ -14,9 +14,7 @@ RUN pip install --no-cache-dir -e /app/branchforge_core
 COPY api /app/api
 RUN pip install --no-cache-dir -e /app/api
 
-# Copy Alembic migration config/scripts used at API startup
-COPY alembic.ini /app/alembic.ini
-COPY alembic /app/alembic
+# Alembic files are optional in container builds; app has runtime fallback if absent.
 
 ENV PYTHONUNBUFFERED=1
 
