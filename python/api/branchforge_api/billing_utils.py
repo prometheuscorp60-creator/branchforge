@@ -42,3 +42,8 @@ def can_export_step(user: User) -> bool:
 
 def max_candidates(user: User) -> int:
     return get_plan_limits(user.plan)["candidates_per_job"]
+
+
+def check_plan_quota(user: User, session: Session) -> None:
+    """Backward-compatible alias for legacy router imports."""
+    check_job_quota(user, session)
