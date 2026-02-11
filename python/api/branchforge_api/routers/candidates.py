@@ -4,8 +4,10 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlmodel import Session
+
+from branchforge_core.storage_backend import get_storage_backend, LocalBackend
 
 from ..db import get_session
 from ..models import Candidate, Job, User
@@ -44,10 +46,23 @@ def download_candidate_artifact(candidate_id: str, artifact_key: str, session: S
     if not rel:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
-    abs_path = os.path.join(job.job_dir, rel)
-    if not os.path.exists(abs_path):
-        raise HTTPException(status_code=404, detail="Artifact missing on disk")
+    # Use the storage backend to serve the file
+    backend = get_storage_backend()
+    remote_key = f"{job.job_dir}/{rel}".replace("\\", "/")
 
-    media_type = _ALLOWED[artifact_key]
-    filename = Path(abs_path).name
-    return FileResponse(abs_path, media_type=media_type, filename=filename)
+    if isinstance(backend, LocalBackend):
+        # Local: serve directly from filesystem
+        abs_path = backend.get_local_path(remote_key) if not os.path.isabs(job.job_dir) else os.path.join(job.job_dir, rel)
+        if not os.path.exists(abs_path):
+            raise HTTPException(status_code=404, detail="Artifact missing on disk")
+        media_type = _ALLOWED[artifact_key]
+        filename = Path(abs_path).name
+        return FileResponse(abs_path, media_type=media_type, filename=filename)
+    else:
+        # S3: redirect to a presigned URL
+        if not backend.exists(remote_key):
+            raise HTTPException(status_code=404, detail="Artifact not found in storage")
+        presigned = backend.get_presigned_url(remote_key, expires_in=3600)
+        if presigned:
+            return RedirectResponse(presigned)
+        raise HTTPException(status_code=500, detail="Failed to generate download URL")

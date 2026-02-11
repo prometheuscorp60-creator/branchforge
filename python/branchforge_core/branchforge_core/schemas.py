@@ -14,7 +14,7 @@ class PlateSpec(BaseModel):
     width_mm: float = 100.0
     height_mm: float = 60.0
     polygon: Optional[List[Point2D]] = None
-    dxf_path: Optional[str] = None  # optional DXF outline import
+    dxf_path: Optional[str] = None
 
 
 class PortSpec(BaseModel):
@@ -26,10 +26,9 @@ class PortSpec(BaseModel):
 
 class HeatmapSpec(BaseModel):
     kind: Literal["csv", "image"] = "csv"
-    # Worker-local path to file
     path: str
     total_watts: float = 1000.0
-    flip_y: bool = True  # images typically have origin top-left; we want bottom-left
+    flip_y: bool = True
 
 
 class KeepoutRect(BaseModel):
@@ -37,9 +36,9 @@ class KeepoutRect(BaseModel):
     y_mm: float
     w_mm: float
     h_mm: float
-    # If True, x/y are center; else lower-left
     centered: bool = True
     margin_mm: float = 0.0
+    label: str = ""
 
 
 class KeepoutCircle(BaseModel):
@@ -47,6 +46,7 @@ class KeepoutCircle(BaseModel):
     y_mm: float
     r_mm: float
     margin_mm: float = 0.0
+    label: str = ""
 
 
 class ConstraintsSpec(BaseModel):
@@ -65,9 +65,14 @@ class ConstraintsSpec(BaseModel):
 
 
 class FluidSpec(BaseModel):
-    coolant: Literal["water"] = "water"
+    coolant: str = "water"
     inlet_temp_C: float = 25.0
     target_deltaT_C: float = 10.0
+
+    # Custom fluid overrides (used when coolant == "custom")
+    custom_rho_kg_m3: Optional[float] = None
+    custom_mu_pa_s: Optional[float] = None
+    custom_cp_J_kgK: Optional[float] = None
 
 
 class GenerationSpec(BaseModel):
@@ -75,12 +80,11 @@ class GenerationSpec(BaseModel):
     leaf_counts: List[int] = Field(default_factory=lambda: [8, 12, 16])
     seed: int = 42
 
-    # Higher means more penalty / preference
     weight_pressure: float = 1.0
     weight_uniformity: float = 1.0
     weight_manufacturing: float = 0.5
+    weight_surface_area: float = 0.3
 
-    # derived sizing knobs
     v_max_m_per_s: float = 1.5
 
 
@@ -94,6 +98,8 @@ class JobSpec(BaseModel):
     fluid: FluidSpec = FluidSpec()
     generation: GenerationSpec = GenerationSpec()
 
+    template_id: Optional[str] = None
+
 
 class CandidateMetrics(BaseModel):
     delta_p_kpa: float
@@ -105,6 +111,20 @@ class CandidateMetrics(BaseModel):
     total_mass_flow_g_per_s: float
     total_watts: float
 
+    reynolds_number_max: float = 0.0
+    channel_area_mm2: float = 0.0
+    total_channel_length_mm: float = 0.0
+
+    # Surface-minimization metrics (Meng et al. Nature 649, 315-322, 2026)
+    surface_area_mm2: float = 0.0
+    channel_volume_mm3: float = 0.0
+    surface_to_volume_ratio: float = 0.0
+    murray_law_deviation: float = 0.0
+
+    validation_passed: bool = True
+    validation_warnings: int = 0
+    validation_errors: int = 0
+
 
 class CandidateArtifacts(BaseModel):
     preview_png: str
@@ -113,8 +133,6 @@ class CandidateArtifacts(BaseModel):
     channels_step: str
     plate_stl: str
     channels_dxf: str
-
-    # Debug
     json_paths: str
 
 
@@ -123,6 +141,33 @@ class CandidateSummary(BaseModel):
     label: str
     metrics: CandidateMetrics
     artifacts: CandidateArtifacts
-
-    # For front-end overlays (optional lightweight geometry)
     overlay: Optional[Dict[str, Any]] = None
+
+
+class JobManifest(BaseModel):
+    job_id: str = ""
+    spec: Optional[Dict[str, Any]] = None
+    git_version: str = ""
+    seed: int = 0
+    started_at: str = ""
+    completed_at: str = ""
+    duration_seconds: float = 0.0
+    n_candidates_requested: int = 0
+    n_candidates_produced: int = 0
+    n_candidates_failed: int = 0
+    candidate_timings: List[Dict[str, Any]] = Field(default_factory=list)
+    validation_summary: Dict[str, Any] = Field(default_factory=dict)
+
+
+class TemplateSpec(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str
+    plate: PlateSpec
+    ports: PortSpec
+    constraints: ConstraintsSpec
+    fluid: FluidSpec = FluidSpec()
+    generation: GenerationSpec = GenerationSpec()
+    heatmap_description: str = ""
+    tags: List[str] = Field(default_factory=list)
